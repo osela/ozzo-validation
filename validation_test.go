@@ -6,6 +6,7 @@ package validation
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -72,6 +73,26 @@ func TestBy(t *testing.T) {
 
 func Test_skipRule_Validate(t *testing.T) {
 	assert.Nil(t, Skip.Validate(100))
+}
+
+func TestCustomSliceErrorKey(t *testing.T) {
+	orig := SliceErrorKey
+	defer func() {
+		SliceErrorKey = orig
+	}()
+
+	SliceErrorKey = func(i int, item interface{}) string {
+		if s, ok := item.(String123); ok {
+			return string(s)
+		}
+		return strconv.Itoa(i)
+	}
+
+	slice := []String123{"abc", "str", "str123"}
+	err := Validate(slice)
+	if assert.NotNil(t, err) {
+		assert.Equal(t, "abc: error 123; str: error 123.", err.Error())
+	}
 }
 
 func assertError(t *testing.T, expected string, err error, tag string) {

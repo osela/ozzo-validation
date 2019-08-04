@@ -27,6 +27,9 @@ type (
 	// RuleFunc represents a validator function.
 	// You may wrap it as a Rule by calling By().
 	RuleFunc func(value interface{}) error
+
+	// SliceErrorKeyFunc represents a function to set the error key for slice items.
+	SliceErrorKeyFunc func(index int, value interface{}) string
 )
 
 var (
@@ -35,6 +38,10 @@ var (
 
 	// Skip is a special validation rule that indicates all rules following it should be skipped.
 	Skip = &skipRule{}
+
+	// SliceErrorKey is the function used to set the error key for slice items.
+	// Defaults to the item index within the slice.
+	SliceErrorKey SliceErrorKeyFunc = func(index int, _ interface{}) string { return strconv.Itoa(index) }
 
 	validatableType = reflect.TypeOf((*Validatable)(nil)).Elem()
 )
@@ -103,7 +110,8 @@ func validateSlice(rv reflect.Value) error {
 	for i := 0; i < l; i++ {
 		if ev := rv.Index(i).Interface(); ev != nil {
 			if err := ev.(Validatable).Validate(); err != nil {
-				errs[strconv.Itoa(i)] = err
+				key := SliceErrorKey(i, ev)
+				errs[key] = err
 			}
 		}
 	}
